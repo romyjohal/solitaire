@@ -19,6 +19,8 @@ export interface GameState {
   tableau: Card[][]; // 7 piles, built down in alternating colours
   drawCount: DrawCount;
   moves: number;
+  score: number; // Windows "Standard" scoring, before the time penalty
+  passes: number; // times the waste has been turned back into the stock
 }
 
 export type Location =
@@ -80,8 +82,22 @@ export function deal(drawCount: DrawCount, random: () => number = Math.random): 
     tableau,
     drawCount,
     moves: 0,
+    score: 0,
+    passes: 0,
   };
 }
+
+// Windows Solitaire "Standard" scoring.
+export const SCORE = {
+  wasteToTableau: 5,
+  toFoundation: 10,
+  turnOverCard: 5,
+  foundationToTableau: -15,
+  recycleDrawOne: -100,
+  recycleDrawThree: -20, // only after the third pass
+};
+
+const addScore = (score: number, delta: number) => Math.max(0, score + delta);
 
 const last = <T,>(items: T[]): T | undefined => items[items.length - 1];
 
@@ -94,6 +110,13 @@ export function draw(state: GameState): GameState {
       stock: state.waste.slice().reverse().map((c) => ({ ...c, faceUp: false })),
       waste: [],
       moves: state.moves + 1,
+      passes: state.passes + 1,
+      score:
+        state.drawCount === 1
+          ? addScore(state.score, SCORE.recycleDrawOne)
+          : state.passes >= 2
+            ? addScore(state.score, SCORE.recycleDrawThree)
+            : state.score,
     };
   }
   const count = Math.min(state.drawCount, state.stock.length);
@@ -166,6 +189,10 @@ export function canMove(state: GameState, from: Location, to: Target): boolean {
 export function move(state: GameState, from: Location, to: Target): GameState {
   if (!canMove(state, from, to)) return state;
   const cards = cardsAt(state, from);
+  let delta = 0;
+  if (to.pile === 'foundation' && from.pile !== 'foundation') delta += SCORE.toFoundation;
+  if (to.pile === 'tableau' && from.pile === 'waste') delta += SCORE.wasteToTableau;
+  if (to.pile === 'tableau' && from.pile === 'foundation') delta += SCORE.foundationToTableau;
   const next: GameState = {
     ...state,
     foundations: state.foundations.slice(),
@@ -180,9 +207,14 @@ export function move(state: GameState, from: Location, to: Target): GameState {
   } else {
     const remaining = state.tableau[from.index].slice(0, from.cardIndex);
     const top = last(remaining);
-    if (top && !top.faceUp) remaining[remaining.length - 1] = { ...top, faceUp: true };
+    if (top && !top.faceUp) {
+      remaining[remaining.length - 1] = { ...top, faceUp: true };
+      delta += SCORE.turnOverCard;
+    }
     next.tableau[from.index] = remaining;
   }
+
+  next.score = addScore(state.score, delta);
 
   if (to.pile === 'foundation') {
     next.foundations[to.index] = [...next.foundations[to.index], ...cards];

@@ -6,11 +6,17 @@ Klondike solitaire built with React + Vite, deployed to GitHub Pages.
 
 ## Features
 
-- Draw 1 or Draw 3
-- Drag and drop (mouse and touch), or tap a card to send it to the best spot
-- Unlimited undo (Ctrl/Cmd+Z), move counter and timer
-- Auto-complete once every card is revealed
-- Game is saved in the browser, so a reload picks up where you left off
+Styled after the Windows 95 original: teal desktop, grey bevelled window with a
+Game/Help menu bar and status bar, green felt and the classic 71×96 cards.
+
+- Draw One or Draw Three, chosen under **Game → Options...**
+- Windows "Standard" scoring with a time penalty and a time bonus when you win
+- Six card backs under **Game → Deck...**
+- The bouncing-cards cascade when you win, then "Deal again?"
+- Drag and drop (mouse and touch), or click a card to send it to the best spot
+- Right-click the table to play every available card to the foundations
+- Undo (Ctrl/Cmd+Z), deal a new game with F2
+- The game is saved in the browser, so a reload picks up where you left off
 
 ## Development
 

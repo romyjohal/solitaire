@@ -20,6 +20,8 @@ const empty = (overrides: Partial<GameState> = {}): GameState => ({
   tableau: [[], [], [], [], [], [], []],
   drawCount: 1,
   moves: 0,
+  score: 0,
+  passes: 0,
   ...overrides,
 });
 
@@ -59,6 +61,7 @@ describe('move', () => {
     expect(next.tableau[1].map((x) => x.id)).toEqual(['8-spades', '7-hearts', '6-spades']);
     expect(next.tableau[0]).toEqual([c(9, 'clubs', true)]);
     expect(next.moves).toBe(1);
+    expect(next.score).toBe(5); // turned over a card
   });
 
   it('rejects illegal moves', () => {
@@ -72,6 +75,26 @@ describe('move', () => {
     expect(findAutoTarget(state, { pile: 'waste' })).toEqual({ pile: 'foundation', index: 0 });
     // A king already at the bottom of a pile has nowhere useful to go.
     expect(findAutoTarget(state, { pile: 'tableau', index: 0, cardIndex: 0 })).toBeNull();
+  });
+});
+
+describe('scoring', () => {
+  it('follows Windows standard scoring', () => {
+    let state = empty({ waste: [c(1, 'hearts')], stock: [], tableau: [[c(13, 'clubs')], [], [], [], [], [], []] });
+    state = move(state, { pile: 'waste' }, { pile: 'foundation', index: 0 });
+    expect(state.score).toBe(10);
+    state = { ...state, waste: [c(12, 'hearts')] };
+    state = move(state, { pile: 'waste' }, { pile: 'tableau', index: 0 });
+    expect(state.score).toBe(15);
+  });
+
+  it('penalises recycling and never goes below zero', () => {
+    const one = draw(empty({ waste: [c(3, 'clubs')], score: 150 }));
+    expect(one.score).toBe(50);
+    expect(draw(empty({ waste: [c(3, 'clubs')], score: 30 })).score).toBe(0);
+    const three = empty({ waste: [c(3, 'clubs')], drawCount: 3, score: 50 });
+    expect(draw(three).score).toBe(50);
+    expect(draw({ ...three, passes: 2 }).score).toBe(30);
   });
 });
 
